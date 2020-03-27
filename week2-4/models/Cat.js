@@ -1,23 +1,12 @@
-'use strict';
-const cats = [
-  {
-    id: '1',
-    name: 'Frank',
-    age: '6',
-    weight: '5',
-    owner: '1',
-    filename: 'http://placekitten.com/400/300',
-  },
-  {
-    id: '2',
-    name: 'James',
-    age: '4',
-    weight: '11',
-    owner: '2',
-    filename: 'http://placekitten.com/400/302',
-  },
-];
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-module.exports = {
-  cats,
-};
+const CatSchema = new Schema({
+  name: String,
+  age: Number,
+  gender: { type: String, enum: ['normal', 'developer'] },
+  color: String,
+  weight: Number
+});
+
+module.exports = Cat = mongoose.model('cat', CatSchema);

@@ -13,8 +13,22 @@ const getCatById = (req, res) => {
   res.json(result);
 };
 
-const addCat = (_, res) => {
-  res.json('add cat');
+const addCat = async (req, res) => {
+  try {
+    const newCat = new Cat({
+      name: req.body.name,
+      age: req.body.age,
+      gender: req.body.gender,
+      color: req.body.color,
+      weight: req.body.weight
+    });
+
+    const cat = await newCat.save();
+    res.json(cat);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
 };
 
 const editCat = (req, res) => {

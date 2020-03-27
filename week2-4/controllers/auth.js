@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const passport = require('passport');
 
 const login = (req, res) => {
-  passport.authenticate('local', { session: false }, (err, user, info) => {
+  passport.authenticate('local', { session: false }, (err, user, _) => {
     if (err || !user) {
       return res.status(400).json({
         message: 'Something is not right',
