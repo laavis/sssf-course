@@ -2,12 +2,20 @@
 
 const Cat = require('../models/Cat');
 
-const cats = Cat.cats;
+const getCatList = async (req, res) => {
+  try {
+    const cats = await Cat.find(req.query);
 
-const getCatList = (_, res) => {
-  res.json(cats);
+    if (cats.length === 0) return res.json('No cats found :(');
+
+    res.json(cats);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
 };
 
+// @TODO: refactor
 const getCatById = (req, res) => {
   const result = cats.filter(cat => cat.id === req.params.id);
   res.json(result);

@@ -1,5 +1,8 @@
 'use strict';
 require('dotenv').config();
+require('./utils/pass.js');
+
+const authenticate = require('./middleware/auth');
 
 const express = require('express');
 const cors = require('cors');
@@ -15,12 +18,6 @@ const route = require('./routes/route');
 const app = express();
 const port = 3000;
 
-db.on('connected', () => {
-  app.listen(port);
-});
-
-require('./utils/pass.js');
-
 app.use(cors());
 app.use(express.json({ extended: false }));
 app.use(express.urlencoded({ extended: false }));
@@ -30,7 +27,9 @@ app.get('/', (_, res) => res.send('App up and running'));
 
 app.use('/auth', auth);
 app.use('/blog', route);
-app.use('/user', passport.authenticate('jwt', { session: false }), user);
-app.use('/cat', passport.authenticate('jwt', { session: false }), cat);
+app.use('/user', user);
+app.use('/cat', authenticate, cat);
 
-// app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+db.on('connected', () => {
+  app.listen(port);
+});

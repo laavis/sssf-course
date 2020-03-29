@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const CatSchema = new Schema({
   name: String,
   age: Number,
-  gender: { type: String, enum: ['normal', 'developer'] },
+  gender: { type: String, enum: ['male', 'female'] },
   color: String,
   weight: Number
 });

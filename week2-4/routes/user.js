@@ -1,6 +1,7 @@
 'use strict';
 const express = require('express');
 const bodyParser = require('body-parser');
+const auth = require('../controllers/auth');
 
 const urlencodedParser = bodyParser.urlencoded({ extended: false });
 
@@ -10,8 +11,10 @@ const userController = require('../controllers/user');
 
 router.get('/', userController.getUserList);
 
-router.get('/:id', userController.getUserById);
+router.get('/:user_id', userController.getUserById);
 
-router.post('/', urlencodedParser, userController.addUser);
+router.post('/register', urlencodedParser, userController.createUser);
+
+router.post('/login', urlencodedParser, auth.testLogin);
 
 module.exports = router;
