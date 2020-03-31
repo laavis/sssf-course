@@ -7,14 +7,14 @@ const urlencodedParser = bodyParser.urlencoded({ extended: false });
 
 const router = express.Router();
 
-const userController = require('../controllers/user');
+const controller = require('../controllers/user');
 
-router.get('/', userController.getUserList);
+router.get('/', controller.getUserList);
 
-router.get('/:user_id', userController.getUserById);
+router.get('/:user_id', controller.getUserById);
 
-router.post('/register', urlencodedParser, userController.createUser);
+router.post('/register', urlencodedParser, controller.createUser);
 
-router.post('/login', urlencodedParser, auth.testLogin);
+router.post('/login', urlencodedParser, auth.login);
 
 module.exports = router;
