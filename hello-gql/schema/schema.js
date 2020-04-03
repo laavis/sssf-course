@@ -1,153 +1,182 @@
-'use strict';
-const _ = require('lodash');
+const MConnection = require('../models/Connection');
+const MConnectionType = require('../models/ConnectionType');
+const MCurrentType = require('../models/CurrentType');
+const MLevel = require('../models/Level');
+const MStation = require('../models/Station');
+
+const stationCtrl = require('../controllers/station');
+
 const {
-  GraphQLObjectType,
+  GraphQLBoolean,
+  GraphQLFloat,
+  GraphQLInputObjectType,
   GraphQLID,
-  GraphQLString,
+  GraphQLInt,
   GraphQLList,
+  GraphQLNonNull,
+  GraphQLObjectType,
   GraphQLSchema,
-  GraphQLNonNull
+  GraphQLString
 } = require('graphql');
 
-const Animal = require('../models/Animal');
-const Species = require('../models/Species');
-const Category = require('../models/Category');
-
-const auth = require('../middleware/auth');
-
-const animalData = [{ id: '1', animalName: 'Frank', species: '1' }];
-const speciesData = [{ id: '1', speciesName: 'Cat', category: '1' }];
-const categoryData = [{ id: '1', categoryName: 'Mammal' }];
-
-const AnimalType = new GraphQLObjectType({
-  name: 'animal',
+const ConnectionType = new GraphQLInputObjectType({
+  name: 'connection',
   fields: () => ({
-    id: { type: GraphQLID },
-    name: { type: GraphQLString },
-    species: {
-      type: SpeciesType,
-      async resolve(parent, args) {
-        try {
-          return await Species.findById(parent.species);
-        } catch (e) {
-          return new Error(e.message);
+    _id: { type: GraphQLString },
+    fields: () => ({
+      type: ConnectionTypeType,
+      resolve: parent => {
+        return MConnectionType.findById(parent.ConnectionTypeID);
+      },
+      CurrentType: {
+        type: currentTypeType,
+        resolve: parent => {
+          return MCurrentType.findById(parent.CurrentTypeID);
         }
+      },
+      LevelType: {
+        type: levelType,
+        resolve: parent => {
+          return MLevel.findById(parent.LevelID);
+        }
+      },
+      Quantity: { type: GraphQLInt }
+    })
+  })
+});
+
+const ConnectionTypeType = new GraphQLInputObjectType({
+  name: 'connectionType',
+  fields: () => ({
+    _id: { type: GraphQLString },
+    Title: { type: GraphQLString },
+    FormalName: { type: GraphQLString }
+  })
+});
+
+const CurrentTypeType = new GraphQLInputObjectType({
+  name: 'currentType',
+  fields: () => ({
+    _id: { type: GraphQLString },
+    Title: { type: GraphQLString },
+    Description: { type: GraphQLString }
+  })
+});
+
+const LevelType = new GraphQLInputObjectType({
+  name: 'level',
+  fields: () => ({
+    _id: { type: GraphQLString },
+    Title: { type: GraphQLString },
+    Comments: { type: GraphQLString },
+    IsFastChargeCapable: { type: GraphQLBoolean }
+  })
+});
+
+const StationType = new GraphQLObjectType({
+  name: 'station',
+  fields: () => ({
+    _id: { type: GraphQLString },
+    Title: { type: GraphQLString },
+    Town: { type: GraphQLString },
+    AddressLine1: { type: GraphQLString },
+    StateOrProvince: { type: GraphQLString },
+    Postcode: { type: GraphQLString },
+    Location: { type: LocationType },
+    Connections: {
+      type: new GraphQLList(ConnectionType),
+      resolve: parent => {
+        return MConnection.find({ _id: { $in: parent.Connections } });
       }
     }
   })
 });
 
-const SpeciesType = new GraphQLObjectType({
-  name: 'species',
+const LocationType = new GraphQLObjectType({
+  name: 'location',
   fields: () => ({
-    id: { type: GraphQLID },
-    name: { type: GraphQLString },
-    category: {
-      type: CategoryType,
-      async resolve(parent, args) {
-        try {
-          return await Category.findById(parent.category);
-        } catch (e) {
-          return new Error(e.message);
-        }
-      }
-    }
+    type: { type: GraphQLString },
+    coordinates: { type: new GraphQLList(GraphQLFloat) }
   })
 });
 
-const CategoryType = new GraphQLObjectType({
-  name: 'category',
+const PointType = new GraphQLInputObjectType({
+  name: 'point',
   fields: () => ({
-    id: { type: GraphQLID },
-    name: { type: GraphQLString }
+    lng: { type: GraphQLFloat },
+    lat: { type: GraphQLFloat }
+  })
+});
+
+const LocationInputType = new GraphQLInputObjectType({
+  name: 'locationInput',
+  fields: () => ({
+    type: { type: GraphQLString },
+    coordinates: { type: new GraphQLList(GraphQLFloat) }
+  })
+});
+
+const ConnectionInputType = new GraphQLInputObjectType({
+  name: 'connectionInput',
+  fields: () => ({
+    ConnectionTypeID: { type: GraphQLString },
+    LevelID: { type: GraphQLString },
+    CurrentTypeID: { type: GraphQLString },
+    Quantity: { type: GraphQLInt }
   })
 });
 
 const RootQuery = new GraphQLObjectType({
-  name: 'RootQueryType',
+  name: 'rootQuery',
   fields: {
-    animals: {
-      type: new GraphQLList(AnimalType),
-      async resolve(parent, args, { req, res }) {
-        try {
-          auth(req, res);
-          return animalData;
-        } catch (err) {
-          console.error(err);
-          res.status(400).json(err);
-        }
-      }
-    }
-  }
-});
-
-const Mutation = new GraphQLObjectType({
-  name: 'MutationType',
-  fields: {
-    addCategory: {
-      type: CategoryType,
+    stationByID: {
+      type: new GraphQLList(StationType),
       args: {
-        name: { type: new GraphQLNonNull(GraphQLString) }
+        id: { type: new GraphQLNonNull(GraphQLString) }
       },
-      async resolve(parent, args, { req, res, auth }) {
-        try {
-          auth(req, res);
-          return await Category.create(args);
-        } catch (err) {
-          return new Error(err.message);
-        }
+      resolve(parent, args) {
+        return stationCtrl.getStationById({ id: args.id });
       }
     },
-    addSpecies: {
-      type: SpeciesType,
+    stations: {
+      type: new GraphQLList(StationType),
+      description: 'Get all stations',
       args: {
-        category: { type: new GraphQLNonNull(GraphQLID) },
-        name: { type: new GraphQLNonNull(GraphQLString) }
+        limit: { type: GraphQLInt },
+        start: { type: GraphQLInt },
+        topRight: { type: PointType },
+        bottomLeft: { type: PointType }
       },
-      async resolve(parent, args, { req, res, auth }) {
-        try {
-          auth(req, res);
-          return Species.create(args);
-        } catch (e) {
-          return new Error(e.message);
-        }
+      resolve(parent, args) {
+        return stationController.getListOfStations({
+          start: args.start,
+          limit: args.limit,
+          topRight: args.topRight,
+          bottomLeft: args.bottomLeft
+        });
       }
     },
-    addAnimal: {
-      type: AnimalType,
-      args: {
-        name: { type: new GraphQLNonNull(GraphQLString) },
-        species: { type: new GraphQLNonNull(GraphQLID) }
-      },
-      async resolve(parent, args, { req, res }) {
-        try {
-          auth(req, res);
-          return Animal.create(args);
-        } catch (e) {
-          return new Error(e.message);
-        }
+    currentTypes: {
+      type: new GraphQLList(CurrentTypeType),
+      resolve(parent, args) {
+        return CurrentType.find();
       }
     },
-    modifyAnimal: {
-      type: AnimalType,
-      args: {
-        id: { type: new GraphQLNonNull(GraphQLID) },
-        name: { type: new GraphQLNonNull(GraphQLString) },
-        species: { type: new GraphQLNonNull(GraphQLID) }
-      },
-      async resolve(parent, args, { req, res, auth }) {
-        try {
-          auth(req, res);
-          return await animal.findByIdAndUpdate(args.id, args, { new: true });
-        } catch (err) {
-          return new Error(err.message);
-        }
+    connectionTypes: {
+      type: new GraphQLList(ConnectionType),
+      resolve(parent, args) {
+        return ConnectionType.find();
+      }
+    },
+    levelTypes: {
+      type: new GraphQLList(LevelType),
+      resolve(parent, args) {
+        return Level.find();
       }
     }
   }
 });
 
 module.exports = new GraphQLSchema({
-  query: RootQuery,
-  mutation: Mutation
+  query: RootQuery
 });
